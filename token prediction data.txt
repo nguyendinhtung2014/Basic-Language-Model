@@ -1,0 +1,345 @@
+#sudoku solver
+import os
+#input
+board=[]
+for i in range(9):
+    s=input()
+    board.append(list(map(int,list(s))))
+
+#important stuff
+boxes=[]
+for i in range(3):
+    for j in range(3):
+        tmp=[]
+        for k in range(3):
+            for l in range(3):
+                tmp.append([i*3+k,j*3+l])
+        boxes.append(tmp)
+
+def isvalid(board):
+    #check rows
+    for i in board:
+        check=[j for j in i if j!=0]
+        if len(set(check))!=len(check):return False
+    #check collums
+    for i in range(9):
+        s=[]
+        for j in range(9):
+            if board[j][i]!=0:s.append(board[j][i])
+        if len(set(s))!=len(s):
+            return False
+    #check boxes
+    for i in boxes:
+        tmp=[board[j[0]][j[1]] for j in i if board[j[0]][j[1]]!=0]
+        if len(set(tmp))!=len(tmp):
+            return False
+    return True
+
+res=set()
+def validnummat(board):
+    av=[]
+    for i in range(9):
+        for j in range(9):
+            if board[i][j]==0:
+                allowed=[]
+                for d in range(1,10):
+                    board[i][j]=d
+                    if isvalid(board):
+                        allowed.append(d)
+                    board[i][j]=0
+                if allowed==[]:return False #cancel search
+                av.append(allowed)
+            else:
+                av.append([])
+    return av
+def search(board):
+    av=validnummat(board)
+    if av==False:return av
+    c=False
+    mini=-1
+    minj=-1
+    numav=10
+    for i in range(9):
+        for j in range(9):
+            if board[i][j]==0:
+                c=True
+                if numav>len(av[i*9+j]):
+                    numav=len(av[i*9+j])
+                    mini=i
+                    minj=j
+    if not c and isvalid(board):
+        res.add(tuple(tuple(row) for row in board))
+        return True
+    for d in av[mini*9+minj]:
+        board[mini][minj]=d
+        if isvalid(board):
+            search(board)
+        board[mini][minj]=0
+search(board)
+print(len(res))
+for i in res:
+    print(*i,sep="\n")
+    print()
+
+#sorting algorithms with turtle
+import turtle
+t=turtle.Turtle()
+import random,os,math
+from time import sleep
+length=100 #Change this parameter
+w=640//length
+def visualize(l,p,s):
+    turtle.title(s)
+    t.home()
+    turtle.tracer(False)
+    t.backward((w*len(l)/2))
+    t.width(w)
+    t.sety(0-(w*len(l)/2))
+    t.clear()
+    for i in range(len(l)-1):
+        if i==p:
+            t.color("red")
+        else:
+            t.color("green")
+        t.left(90)
+        t.forward(l[i]*w)
+        t.backward(l[i]*w)
+        t.right(90)
+        t.forward(w)
+    i=len(l)-1
+    if i==p:
+        t.color("red")
+    else:
+        t.color("green")
+    t.left(90)
+    t.forward(l[i]*w)
+    t.backward(l[i]*w)
+    t.right(90)
+    turtle.update()
+def swap(i,j):
+    l[i],l[j]=l[j],l[i]
+def shuffle(l):
+    for i in range(length):
+        swap(i,random.randint(i,length-1))
+        visualize(l,i,"shuffling")
+    visualize(l,-1,"shuffling")
+def bubble(l):
+    for i in range(length-1,0,-1):
+        for j in range(i):
+            if l[j]>l[j+1]:
+                swap(j,j+1)
+            visualize(l,j,"bubble sort")
+    visualize(l,-1,"bubble sort")
+def insert(i,g,s):
+    if i>=g:
+        if l[i]<l[i-g]:
+            visualize(l,i,"insertion sort" if s==0 else "shell sort")
+            swap(i,i-g)
+            insert(i-g,g,s)
+def partition(p,r):
+    pivot=p
+    for i in range(p+1,r+1):
+        if l[i]<l[pivot]:
+            swap(i,pivot+1)
+            swap(pivot,pivot+1)
+            pivot+=1
+            visualize(l,i,"quick sort")
+    quicksort(p,pivot)
+    quicksort(pivot+1,r)
+def quicksort(p,r):
+    if r-p>=1:
+        partition(p,r)
+def sd(i,b):
+    visualize(l,i,"heap sort")
+    try:
+        x=l[(i+1)*2-1]
+    except:
+        x=0-(10**100)
+    try:
+        y=l[(i+1)*2]
+    except:
+        y=0-(10**100)
+    if (i+1)*2-1<b and ( x>l[i] or y>l[i]):
+        if x>y:
+            swap(i,(i+1)*2-1)
+            sd((i+1)*2-1,b)
+        else:
+            swap(i,(i+1)*2)
+            sd((i+1)*2,b)
+def heap(l):
+    b=len(l)
+    x=b
+    for i in range(len(l)):
+        x-=1
+        sd(x,b)
+    b=len(l)
+    for i in range(len(l)):
+        swap(0,b-1)
+        b-=1
+        sd(0,b-1)
+    if l[0]>l[1]:
+        swap(0,1)
+l=[i for i in range(1,length+1)]
+visualize(l,-1,"")
+shuffle(l)
+sleep(1)
+bubble(l)
+sleep(1)
+shuffle(l)
+sleep(1)
+for i in range(1,length):
+    insert(i,1,0)
+visualize(l,-1,"insetion sort")
+sleep(1)
+shuffle(l)
+sleep(1)
+g=length
+while g>1:
+    g=math.ceil(g/2)
+    for i in range(g,length):
+        insert(i,g,1)
+visualize(l,-1,"shell sort")
+sleep(1)
+shuffle(l)
+sleep(1)
+quicksort(0,length-1)
+visualize(l,-1,"quick sort")
+sleep(1)
+shuffle(l)
+sleep(1)
+heap(l)
+visualize(l,-1,"heap sort")
+turtle.mainloop()
+
+#Battle game
+import os
+import random
+import time
+name=input("Name your warrior: ")
+type=input("Character type (Human, Elf, Wizard, Orc): ")
+roll=random.randint(1,6)
+side=random.randint(2,8)
+health=abs((6-side-roll*12-side-roll/2)+10)
+roll=random.randint(1,6)
+side=random.randint(2,8)
+strength=abs((6-side-roll*8-side-roll/2)+12)
+print("------------------")
+print(name,"(",type,")")
+print("HEALTH: ",health)
+print("STRENGTH: ",strength)
+print("--------------------------------")
+nameen=input("Name your enemy: ")
+typeen=input("Enemy type (Human, Elf, Wizard, Orc): ")
+roll=random.randint(1,6)
+side=random.randint(2,8)
+healthen=abs((6-side-roll*12-side-roll//2)+10)
+roll=random.randint(1,6)
+side=random.randint(2,8)
+strengthen=abs((6-side-roll*8-side-roll//2)+12)
+print("------------------")
+print(nameen,"(",typeen,")")
+print("HEALTH: ",healthen)
+print("STRENGTH: ",strengthen)
+time.sleep(5)
+while health>0 and healthen>0:
+  os.system("cls")
+  print("Battle time")
+  if random.randint(1,2)==1:
+    print(name," wins the round")
+    print(nameen," takes a hit, with ",strength," damage")
+    healthen = healthen-strength
+  else:
+    print(nameen," wins the round")
+    print(name," takes a hit, with ",strengthen," damage")
+    health = health-strengthen
+  print(name,": ",health)
+  print(nameen,": ",healthen)
+  time.sleep(3)
+if health<=0:
+  print(name," has died")
+  print("You lose")
+else:
+  print(nameen," has died")
+  print("You win")
+
+Machine learning (ML) is a field of study in artificial intelligence concerned with the development and study of statistical algorithms that can learn from data and generalise to unseen data, and thus perform tasks without explicit instructions. Within a subdiscipline in machine learning, advances in the field of deep learning have allowed neural networks, a class of statistical algorithms, to surpass many previous machine learning approaches in performance.
+ML finds application in many fields, including natural language processing, computer vision, speech recognition, email filtering, agriculture, and medicine. The application of ML to business problems is known as predictive analytics.
+Statistics and mathematical optimisation (mathematical programming) methods comprise the foundations of machine learning. Data mining is a related field of study, focusing on exploratory data analysis (EDA) through unsupervised learning.
+From a theoretical viewpoint, probably approximately correct learning provides a mathematical and statistical framework for describing machine learning. Most traditional machine learning and deep learning algorithms can be described as empirical risk minimisation under this framework.
+
+YouTube is an American social media and online video sharing platform owned by Google. YouTube was founded on February 14, 2005, by Chad Hurley, Jawed Karim, and Steve Chen, who were former employees of PayPal. Headquartered in San Bruno, California, it is the second-most-visited website in the world, after Google. In January 2024, YouTube had more than 2.7 billion monthly active users, who collectively watched more than one billion hours of videos every day. As of May 2019, videos were being uploaded to the platform at a rate of more than 500 hours of content per minute, and as of mid-2024, there were approximately 14.8 billion videos in total.
+On November 13, 2006, YouTube was purchased by Google for US$1.65 billion (equivalent to $2.39 billion in 2024). Google expanded YouTube's business model from generating revenue through advertisements alone to offering paid content such as movies and exclusive content explicitly produced for YouTube. It also offers YouTube Premium, a paid subscription option for watching content without ads. YouTube incorporated the Google AdSense program, generating more revenue for both YouTube and approved content creators. In 2023, YouTube's advertising revenue totaled $31.7 billion, a 2% increase from the $31.1 billion reported in 2022. From Q4 2023 to Q3 2024, YouTube's combined revenue from advertising and subscriptions exceeded $50 billion.
+Since its purchase by Google, YouTube has expanded beyond the core website into mobile apps, network television, and the ability to link with other platforms. Video categories on YouTube include music videos, video clips, news, short and feature films, songs, documentaries, movie trailers, teasers, TV spots, live streams, vlogs, and more. Most content is generated by individuals, including collaborations between YouTubers and corporate sponsors. Established media, news, and entertainment corporations have also created and expanded their visibility to YouTube channels to reach bigger audiences.
+YouTube has had unprecedented social impact, influencing popular culture, internet trends, and creating multimillionaire celebrities. Despite its growth and success, the platform has been criticized for its facilitation of the spread of misinformation and copyrighted content, routinely violating its users' privacy, excessive censorship, endangering the safety of children and their well-being, and for its inconsistent implementation of platform guidelines.
+
+Wikipedia[c] is a free online encyclopedia written and maintained by a community of volunteers, known as Wikipedians, through open collaboration and the wiki software MediaWiki. Founded by Jimmy Wales and Larry Sanger in 2001, Wikipedia has been hosted since 2003 by the Wikimedia Foundation, an American nonprofit organization funded mainly by donations from readers. Wikipedia is the largest and most-read reference work in history.
+Initially available only in English, Wikipedia exists in over 340 languages and is the world's seventh or ninth most visited website, according to differing sources on internet traffic. The English Wikipedia, with over 7 million articles, remains the largest of the editions, which together comprise more than 66 million articles and attract more than 1.5 billion unique device visits and 13 million edits per month (about 5 edits per second on average) as of April 2024.[W 1] As of September 2025,[needs update] over 25% of Wikipedia's traffic comes from the United States, while Japan accounts for nearly 7%, and the United Kingdom, Germany, and Russia each represent around 5%.
+Wikipedia has been praised for enabling the democratization of knowledge, its extensive coverage, unique structure, and culture. Wikipedia has been censored by some national governments, ranging from specific pages to the entire site. Wikipedia's volunteer editors have written extensively on a wide variety of topics, but the encyclopedia has also been criticized for systemic bias, such as a gender bias against women and a geographical bias against the Global South. While the reliability of Wikipedia was frequently criticized in the 2000s, it has improved over time, receiving greater praise from the late 2010s onward. Articles on breaking news are often accessed as sources for up-to-date information about those events.
+
+Google LLC is an American multinational technology corporation focused on information technology, online advertising, search engine technology, email, cloud computing, software, quantum computing, e-commerce, consumer electronics, and artificial intelligence (AI). It has been referred to as "the most powerful company in the world" by BBC, and is one of the world's most valuable brands. Google's parent company Alphabet Inc. has been described as a Big Tech company.
+Google was founded on September 4, 1998, by American computer scientists Larry Page and Sergey Brin. Together, they own about 14% of its publicly listed shares and control 56% of its stockholder voting power through super-voting stock. The company went public via an initial public offering (IPO) in 2004. In 2015, Google was reorganized as a wholly owned subsidiary of Alphabet Inc. Google is Alphabet's largest subsidiary and is a holding company for Alphabet's internet properties and interests. Sundar Pichai was appointed CEO of Google on October 24, 2015, replacing Larry Page, who became the CEO of Alphabet. On December 3, 2019, Pichai also became the CEO of Alphabet.
+After the success of its original service, Google Search (often known simply as "Google"), the company has rapidly grown to offer a multitude of products and services. These products address a wide range of use cases, including email (Gmail), navigation and mapping (Waze, Maps, and Earth), cloud computing (Cloud), web navigation (Chrome), video sharing (YouTube), productivity (Workspace), operating systems (Android and ChromeOS), cloud storage (Drive), language translation (Translate), photo storage (Photos), videotelephony (Meet), smart home (Nest), smartphones (Pixel), wearable technology (Pixel Watch and Fitbit), music streaming (YouTube Music), video on demand (YouTube TV), AI (Google Assistant and Gemini), machine learning APIs (TensorFlow), AI chips (TPU), and more. Many of these products and services are dominant in their respective industries, as is Google Search. Discontinued Google products include gaming (Stadia), Glass, Google+, Reader, Play Music, Nexus, Hangouts, and Inbox by Gmail. Google's other ventures outside of internet services and consumer electronics include quantum computing (Willow, Google Quantum AI), self-driving cars (Waymo), and transformer models (Google DeepMind).
+Google Search and YouTube are the two most-visited websites worldwide, followed by Facebook, Instagram, and ChatGPT. Google is the largest provider of search engines, mapping and navigation applications, email services, office suites, online video platforms, photo and cloud storage, mobile operating systems, web browsers, machine learning frameworks, and AI virtual assistants in the world as measured by market share. On the list of the most valuable brands, Google is ranked second by Forbes as of January 2022, and is fourth by Interbrand as of February 2022. The company has received criticism involving issues such as privacy concerns, tax avoidance, censorship, search neutrality, antitrust, and abuse of its monopoly position.
+
+PageRank (PR) is an algorithm used by Google Search to rank web pages in their search engine results. It is named after both the term "web page" and co-founder Larry Page. PageRank is a way of measuring the importance of website pages. According to Google:
+PageRank works by counting the number and quality of links to a page to determine a rough estimate of how important the website is. The underlying assumption is that more important websites are likely to receive more links from other websites.
+Currently, PageRank is not the only algorithm used by Google to order search results, but it is the first algorithm that was used by the company, and it is the best known. As of September 24, 2019, all patents associated with PageRank have expired.
+
+Vietnam, officially the Socialist Republic of Vietnam (SRV), is a country at the eastern edge of Mainland Southeast Asia. With an area of about 331,000 square kilometres (128,000 sq mi) and a population of over 102 million, it is the world's 16th-most populous country. One of two communist states in Southeast Asia, Vietnam is bordered by China to the north, and Laos and Cambodia to the west; it lies along the Gulf of Thailand to the southwest and the South China Sea to the east, where it has shared and disputed maritime borders with other countries. Its capital is Hanoi, while its largest city is Ho Chi Minh City.
+Vietnam was inhabited by the Paleolithic age, with states established in the first millennium BC on the Red River Delta in modern-day northern Vietnam. The Han dynasty annexed northern and central Vietnam, which were subsequently under Chinese rule from 111 BC until the first dynasty emerged in 939. Successive monarchical dynasties absorbed Chinese influences through Confucianism and Buddhism, and expanded southward to the Mekong Delta, conquering Champa. During most of the 17th and 18th centuries, Vietnam was effectively divided into two domains of Dang Trong and Dang Ngoai. The Nguyen-the last imperial dynasty-surrendered to France in 1883. In 1887, its territory was integrated into French Indochina as three separate regions. In the immediate aftermath of World War II, the Viet Minh, a coalition front led by the communist revolutionary Ho Chi Minh, launched the August Revolution and declared Vietnam's independence from the Empire of Japan in 1945.
+Vietnam went through prolonged warfare in the 20th century. After World War II, France returned to reclaim colonial power in the First Indochina War, from which Vietnam emerged victorious in 1954. As a result of the treaties signed between the Viet Minh and France, Vietnam was also separated into two parts. The Vietnam War began shortly after, between the communist North Vietnam, supported by the Soviet Union and China, and the anti-communist South Vietnam, supported by the United States. Upon the North Vietnamese victory in 1975, Vietnam reunified as a unitary communist state that self-designated as a socialist state under the Communist Party of Vietnam (CPV) in 1976. An ineffective planned economy, a trade embargo by the West, and wars with Cambodia and China crippled the country further. In 1986, the CPV launched economic and political reforms similar to the Chinese economic reform, transforming the country to a socialist-oriented market economy. The reforms facilitated Vietnamese reintegration into the global economy and politics.
+Vietnam is a developing country with a lower-middle-income economy. It has high levels of corruption, censorship, environmental issues, and a poor human rights record. It is part of international and intergovernmental institutions, including the ASEAN, the APEC, the Non-Aligned Movement, the OIF, and the WTO. It has assumed a seat on the United Nations Security Council twice.
+
+Water puppetry is a Vietnamese tradition that dates back as far as the 11th century, when it originated in the villages of the Red River Delta, in the north of the country. Vietnamese water puppetry is a variation on the ancient Asian puppet tradition.
+The puppets are made out of wood and then lacquered. The shows are performed in a waist deep pool. A large bamboo rod supports the puppet under the water and is used by the puppeteers, who are normally hidden behind a screen, to control them. Thus the puppets appear to be moving over the water. When rice fields would flood, the villagers would entertain each other using this form of puppet play.
+
+The United States of America (USA), also known as the United States (U.S.) or America, is a country primarily located in North America. It is a federal republic of 50 states and a federal capital district, Washington, D.C. The 48 contiguous states border Canada to the north and Mexico to the south, with the semi-exclave of Alaska in the northwest and the archipelago of Hawaii in the Pacific Ocean. The United States also asserts sovereignty over five major island territories and various uninhabited islands in Oceania and the Caribbean. It is a megadiverse country, with the world's third-largest land area and third-largest population, exceeding 340 million.
+Paleo-Indians first migrated from North Asia to North America at least 15,000 years ago, and formed various civilizations. Spanish colonization established Spanish Florida in 1513, the first European colony in what is now the continental United States. British colonization followed with the 1607 settlement of Virginia, the first of the Thirteen Colonies. Enslavement of Africans was practiced in all colonies by 1770 and supplied most of the labor for the Southern Colonies' plantation economy. Clashes with the British Crown began as a civil protest over the illegality of taxation without representation in Parliament and the denial of other English rights. They evolved into the American Revolution, which led to the Declaration of Independence and a society based on universal rights. Victory in the 1775-1783 Revolutionary War brought international recognition of U.S. sovereignty and fueled westward expansion, further dispossessing native inhabitants. As more states were admitted, a North-South division over slavery led the Confederate States of America to declare secession and fight the Union in the 1861-1865 American Civil War. With the United States' victory and reunification, slavery was abolished nationally. Beginning in the late 18th century, rapid industrialization accelerated by technological advances, powerful monopolies stifling competition, and the influx of millions of immigrant laborers during the Gilded Age transformed the United States into a leading industrial power. By 1900, the country had established itself as a great power, a status solidified after its involvement in World War I. Following Japan's attack on Pearl Harbor in 1941, the U.S. entered World War II. Its aftermath left the U.S. and the Soviet Union as rival superpowers, competing for ideological dominance and international influence during the Cold War. The Soviet Union's collapse in 1991 ended the Cold War, leaving the U.S. as the world's sole superpower.
+The U.S. national government is a presidential constitutional federal republic and representative democracy with three separate branches: legislative, executive, and judicial. It has a bicameral national legislature composed of the House of Representatives (a lower house based on population) and the Senate (an upper house based on equal representation for each state). Federalism grants substantial autonomy to the 50 states. In addition, 574 Native American tribes have sovereignty rights, and there are 326 Native American reservations. Since the 1850s, the Democratic and Republican parties have dominated American politics. American ideals and values are based on a democratic tradition inspired by the American Enlightenment movement.
+A developed country, the U.S. ranks high in economic competitiveness, innovation, and higher education. Accounting for over a quarter of nominal global GDP, its economy has been the world's largest since about 1890. It is the wealthiest country, with the highest disposable household income per capita among OECD members, though its wealth inequality is highly pronounced. Shaped by centuries of immigration, the culture of the U.S. is diverse and globally influential. Making up more than a third of global military spending, the country has one of the strongest armed forces and is a designated nuclear state. A member of numerous international organizations, the U.S. plays a major role in global political, cultural, economic, and military affairs. 
+
+Barack Hussein Obama II (born August 4, 1961) is an American politician who served as the 44th president of the United States from 2009 to 2017. A member of the Democratic Party, he was the first African American president. Obama previously served as a U.S. senator representing Illinois from 2005 to 2008 and as an Illinois state senator from 1997 to 2004.
+Born in Honolulu, Hawaii, Obama graduated from Columbia University in 1983 with a Bachelor of Arts degree in political science and later worked as a community organizer in Chicago. In 1988, Obama enrolled in Harvard Law School, where he was the first black president of the Harvard Law Review. He became a civil rights attorney and an academic, teaching constitutional law at the University of Chicago Law School from 1992 to 2004. In 1996, Obama was elected to represent the 13th district in the Illinois Senate, a position he held until 2004, when he successfully ran for the U.S. Senate. In the 2008 presidential election, after a close primary campaign against Hillary Clinton, he was nominated by the Democratic Party for president. Obama selected Joe Biden as his running mate and defeated Republican nominee John McCain and his running mate Sarah Palin.
+Obama was awarded the 2009 Nobel Peace Prize for efforts in international diplomacy, a decision which drew both criticism and praise. During his first term, his administration responded to the 2008 financial crisis with measures including the American Recovery and Reinvestment Act of 2009 to address the Great Recession; a partial extension of the Bush tax cuts; legislation to reform health care; and the Dodd-Frank Wall Street Reform and Consumer Protection Act, a major financial regulation reform bill. Obama also appointed Supreme Court justices Sonia Sotomayor and Elena Kagan, the former being the first Hispanic American on the Supreme Court. Obama also oversaw the end of the Iraq War and ordered Operation Neptune Spear, the raid that killed Osama bin Laden, who was responsible for the September 11 attacks. He downplayed Bush's counterinsurgency model by expanding air strikes and making extensive use of special forces, while encouraging greater reliance on host-government militaries. Obama also ordered the 2011 military intervention in Libya to implement United Nations Security Council Resolution 1973, which contributed to the overthrow of Muammar Gaddafi.
+Obama defeated Republican opponent Mitt Romney and his running mate Paul Ryan in the 2012 presidential election. In his second term, Obama advocated for gun control in the wake of the Sandy Hook Elementary School shooting, took steps to combat climate change by signing the Paris Agreement on climate change and an executive order to limit carbon emissions, and presided over the implementation of the Affordable Care Act and other legislation passed during his first term. Obama also initiated sanctions against Russia following its invasion in Ukraine and again after Russian interference in the 2016 U.S. elections. He ordered military intervention in Iraq after gains made by ISIL following the 2011 withdrawal from Iraq, negotiated the Joint Comprehensive Plan of Action (a nuclear agreement with Iran), and normalized relations with Cuba. The number of American soldiers in Afghanistan decreased during Obama's second term, though U.S. soldiers remained in the country throughout his presidency. He also promoted inclusion for LGBT Americans, becoming the first sitting U.S. president to publicly support same-sex marriage.
+Obama left office in 2017 with high approval ratings both within the United States and among foreign advisories. He continues to reside in Washington, D.C., and remains politically active, campaigning for candidates in various American elections, including in Biden's successful presidential bid in the 2020 presidential election. Outside politics, Obama has published three books: Dreams from My Father (1995), The Audacity of Hope (2006), and A Promised Land (2020). His presidential library began construction in the South Side of Chicago in 2021. Historians and political scientists rank Obama highly in historical rankings of U.S. presidents. 
+
+Elon Reeve Musk (EE-lon; born June 28, 1971) is a businessman and entrepreneur known for his leadership of Tesla, SpaceX, Twitter, and xAI. Musk has been the wealthiest person in the world since 2021; as of January 2026, Forbes estimates his net worth to be around US$785 billion.
+Born into a wealthy family in Pretoria, South Africa, Musk emigrated in 1989 to Canada; he has Canadian citizenship since his mother was born there. He received bachelor's degrees in 1997 from the University of Pennsylvania in Philadelphia, United States, before moving to California to pursue business ventures. In 1995, Musk co-founded the software company Zip2. Following its sale in 1999, he co-founded X.com, an online payment company that later merged to form PayPal, which was acquired by eBay in 2002. Musk also became an American citizen in 2002.
+In 2002, Musk founded the space technology company SpaceX, becoming its CEO and chief engineer; the company has since led innovations in reusable rockets and commercial spaceflight. Musk joined the automaker Tesla as an early investor in 2004 and became its CEO and product architect in 2008; it has since become a leader in electric vehicles. In 2015, he co-founded OpenAI to advance artificial intelligence (AI) research, but later left; growing discontent with the organization's direction and their leadership in the AI boom in the 2020s led him to establish xAI. In 2022, he acquired the social network Twitter, implementing significant changes, and rebranding it as X in 2023. His other businesses include the neurotechnology company Neuralink, which he co-founded in 2016, and the tunneling company the Boring Company, which he founded in 2017. In November 2025, a Tesla pay package worth $1 trillion for Musk was approved, which he is to receive over 10 years if he meets specific goals.
+Musk was the largest donor in the 2024 U.S. presidential election, where he supported Donald Trump. After Trump was inaugurated as president in early 2025, Musk served as Senior Advisor to the President and as the de facto head of the Department of Government Efficiency (DOGE). After a public feud with Trump, Musk left the Trump administration and returned to managing his companies. Musk is a supporter of global far-right figures, causes, and political parties. His political activities, views, and statements have made him a polarizing figure. Musk has been criticized for COVID-19 misinformation, promoting conspiracy theories, and affirming antisemitic, racist, and transphobic comments. His acquisition of Twitter was controversial due to a subsequent increase in hate speech and the spread of misinformation on the service, following his pledge to decrease censorship. His role in the second Trump administration attracted public backlash, particularly in response to DOGE. 
+
+Elizabeth II (Elizabeth Alexandra Mary; 21 April 1926 - 8 September 2022) was Queen of the United Kingdom and other Commonwealth realms from 6 February 1952 until her death in 2022. She was queen regnant of 32 sovereign states during her lifetime and was the monarch of 15 realms at her death. Her reign of 70 years and 214 days is the longest of any British monarch, the second-longest of any sovereign state, and the longest of any queen regnant in history.
+Elizabeth was born in Mayfair, London, during the reign of her paternal grandfather, King George V. She was the first child of the Duke and Duchess of York (later King George VI and Queen Elizabeth the Queen Mother). Her father acceded to the throne in 1936 upon the abdication of his brother Edward VIII, making the ten-year-old Princess Elizabeth the heir presumptive. She was educated privately at home and began to undertake public duties during the Second World War, serving in the Auxiliary Territorial Service. In November 1947, she married Philip Mountbatten, a former prince of Greece and Denmark. Their marriage lasted 73 years until his death in 2021. They had four children: Charles, Anne, Andrew, and Edward.
+When her father died in February 1952, Elizabeth, then 25 years old, became queen of seven independent Commonwealth countries: the United Kingdom, Canada, Australia, New Zealand, South Africa, Pakistan, and Ceylon, as well as head of the Commonwealth. Elizabeth reigned as a constitutional monarch through significant political changes such as the Troubles in Northern Ireland, devolution in the United Kingdom, the decolonisation of Africa, and the United Kingdom's accession to the European Communities as well as its subsequent withdrawal. The number of her realms varied over time as territories gained independence and some realms became republics. As queen, Elizabeth was served by more than 170 prime ministers across her realms. Her many historic visits and meetings included state visits to China in 1986, to Russia in 1994, and to the Republic of Ireland in 2011, and meetings with five popes and fourteen US presidents.
+Significant events included Elizabeth's coronation in 1953 and the celebrations of her Silver, Golden, Diamond, and Platinum jubilees. Although there was occasional republican sentiment and media criticism of her family particularly after the breakdowns of her children's marriages, her annus horribilis in 1992, and the death of her former daughter-in-law Diana in 1997 support for the monarchy and her popularity in the United Kingdom remained consistently high. Elizabeth died aged 96 at Balmoral Castle, and was succeeded by her eldest son, Charles III. 
+
+The Bible is a collection of religious texts that are central to Christianity and Judaism, and esteemed in other Abrahamic religions such as Islam. The Bible is an anthology (a compilation of texts of a variety of forms) originally written in Hebrew (with some parts in Aramaic) and Koine Greek. The texts include instructions, stories, poetry, prophecies, and other genres. The collection of materials accepted as part of the Bible by a particular religious tradition or community is called a biblical canon. Believers generally consider it to be a product of divine inspiration, but the way they understand what that means and how they interpret the text varies.
+The religious texts, or scriptures, were compiled by different religious communities into various official collections. The earliest contained the first five books of the Bible, called the Torah ('Teaching') in Hebrew and the Pentateuch (meaning 'five books') in Greek. The second-oldest part was a collection of narrative histories and prophecies (the Nevi'im). The third collection, the Ketuvim, contains psalms, proverbs, and narrative histories. Tanakh is an alternate term for the Hebrew Bible. The Masoretic Text is the medieval version of the Tanakh-written in Hebrew and Aramaic-that is considered the authoritative text of the Hebrew Bible by modern Rabbinic Judaism. The Septuagint is a Koine Greek translation of the Tanakh from the third and second centuries BCE; it largely overlaps with the Hebrew Bible.
+Christianity began as an outgrowth of Second Temple Judaism, using the Septuagint as the basis of the Old Testament. The early Church continued the Jewish tradition of writing and incorporating what it saw as inspired, authoritative religious books. The gospels, which are narratives about the life and teachings of Jesus, along with the Pauline epistles, and other texts quickly coalesced into the New Testament. The oldest parts of the Bible may be as early as c. 1200 BCE, while the New Testament had mostly formed by 4th century CE.
+With estimated total sales of over five billion copies, the Christian Bible is the best-selling publication of all time. The Bible has had a profound influence both on Western culture and history and on cultures around the globe. The study of it through biblical criticism has also indirectly impacted culture and history. Some view biblical texts as morally problematic, historically inaccurate, or corrupted by time; others find it a useful historical source for certain peoples and events or a source of ethical teachings. The Bible is currently translated or in the process of being translated into about half of the world's languages.
+
+Facebook is an American made social media and social networking service owned by the American technology conglomerate Meta. Created in 2004 by Mark Zuckerberg with four other Harvard College students and roommates, Eduardo Saverin, Andrew McCollum, Dustin Moskovitz, and Chris Hughes, its name derives from the face book directories often given to American university students. Membership was initially limited to Harvard students, gradually expanding to other North American universities.
+Since 2006, Facebook allows everyone to register from 13 years old, except in the case of a handful of nations, where the age requirement is 14 years. As of December 2023, Facebook claimed almost 3.07 billion monthly active users worldwide. As of July 2025, Facebook ranked as the third-most-visited website in the world, with 23% of its traffic coming from the United States. It was the most downloaded mobile app of the 2010's.
+Facebook can be accessed from devices with Internet connectivity, such as personal computers, tablets and smartphones. After registering, users can create a profile revealing personal information about themselves. They can post text, photos and multimedia which are shared with any other users who have agreed to be their friend or, with different privacy settings, publicly. Users can also communicate directly with each other with Messenger, edit messages (within 15 minutes after sending), join common-interest groups, and receive notifications on the activities of their Facebook friends and the pages they follow.
+Facebook has often been criticized over issues such as user privacy (as with the Facebook-Cambridge Analytica data scandal), political manipulation (as with the 2016 U.S. elections) and mass surveillance. The company has also been subject to criticism over its psychological effects such as addiction and low self-esteem, and over content such as fake news, conspiracy theories, copyright infringement, and hate speech. Commentators have accused Facebook of willingly facilitating the spread of such content, as well as exaggerating its number of users to appeal to advertisers.
+
+India, officially the Republic of India, is a country in South Asia. It is the seventh-largest country by area; the most populous country since 2023; and, since its independence in 1947, the world's most populous democracy. Bounded by the Indian Ocean on the south, the Arabian Sea on the southwest, and the Bay of Bengal on the southeast, it shares land borders with Pakistan to the west; China, Nepal, and Bhutan to the north; and Bangladesh and Myanmar to the east. In the Indian Ocean, India is near Sri Lanka and the Maldives; its Andaman and Nicobar Islands share a maritime border with Myanmar, Thailand, and Indonesia.
+Modern humans arrived on the Indian subcontinent from Africa no later than 55,000 years ago. Their long occupation, predominantly in isolation as hunter-gatherers, has made the region highly diverse. Settled life emerged on the subcontinent in the western margins of the Indus river basin 9,000 years ago, evolving gradually into the Indus Valley Civilisation of the third millennium BCE. By 1200 BCE, an archaic form of Sanskrit, an Indo-European language, had diffused into India from the northwest. Its hymns recorded the early dawnings of Hinduism in India. India's pre-existing Dravidian languages were supplanted in the northern regions. By 400 BCE, caste had emerged within Hinduism, and Buddhism and Jainism had arisen, proclaiming social orders unlinked to heredity. Early political consolidations gave rise to the loose-knit Maurya and Gupta Empires. Widespread creativity suffused this era, but the status of women declined, and untouchability became an organised belief. In South India, the Middle kingdoms exported Dravidian language scripts and religious cultures to the kingdoms of Southeast Asia.
+In the 1st millennium, Islam, Christianity, Judaism, and Zoroastrianism became established on India's southern and western coasts. In the early centuries of the 2nd millennium Muslim armies from Central Asia intermittently overran India's northern plains. The resulting Delhi Sultanate drew northern India into the cosmopolitan networks of medieval Islam. In south India, the Vijayanagara Empire created a long-lasting composite Hindu culture. In the Punjab, Sikhism emerged, rejecting institutionalised religion. The Mughal Empire ushered in two centuries of economic expansion and relative peace, and left a rich architectural legacy. Gradually expanding rule of the British East India Company turned India into a colonial economy but consolidated its sovereignty. British Crown rule began in 1858. The rights promised to Indians were granted slowly, but technological changes were introduced, and modern ideas of education and the public life took root. A nationalist movement emerged in India, the first in the non-European British Empire and an influence on other nationalist movements. Noted for nonviolent resistance after 1920, it became the primary factor in ending British rule. In 1947, the British Indian Empire was partitioned into two independent dominions, a Hindu-majority dominion of India and a Muslim-majority dominion of Pakistan. A large-scale loss of life and an unprecedented migration accompanied the partition.
+India has been a federal republic since 1950, governed through a democratic parliamentary system. It is a pluralistic, multilingual and multi-ethnic society. India's population grew from 361 million in 1951 to over 1.4 billion in 2023. During this time, its nominal per capita income increased from US$64 annually to US$2,601, and its literacy rate from 16.6% to 74%. A comparatively destitute country in 1951, India has become a fast-growing major economy and a hub for information technology services, with an expanding middle class. India has reduced its poverty rate, though at the cost of increasing economic inequality. It is a nuclear-weapon state that ranks high in military expenditure. It has disputes over Kashmir with its neighbours, Pakistan and China, unresolved since the mid-20th century. Among the socio-economic challenges India faces are gender inequality, child malnutrition, and rising levels of air pollution. India's land is megadiverse with four biodiversity hotspots. India's wildlife, which has traditionally been viewed with tolerance in its culture, is supported in protected habitats.
+
+Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985), nicknamed CR7, is a Portuguese professional footballer who plays as a forward for and captains both Saudi Pro League club Al-Nassr and the Portugal national team. Widely regarded as one of the greatest players in history, and has won numerous individual accolades throughout his career, including five Ballon d'Ors, a record three UEFA Men's Player of the Year Awards, four European Golden Shoes, and was named five times the world's best player by FIFA.[note 3] He has won 34 trophies in his career, including five UEFA Champions Leagues and the UEFA European Championship. He holds the records for most goals (140) and assists (42) in the Champions League, goals (14) and assists (8) in the European Championship, and most international appearances (226) and international goals (143). He is the only player to have scored 100 goals with four different clubs. He has made over 1,300 professional career appearances, the most by an outfield player, and has scored over 960 official senior career goals for club and country, making him the top goalscorer of all time.
+Born in Funchal, Madeira, Ronaldo began his career with Sporting CP before signing with Manchester United in 2003. He became a star player at United, where he won three consecutive Premier League titles, the Champions League, and the FIFA Club World Cup. His 2007-08 season earned him his first Ballon d'Or at age 23. In 2009, Ronaldo became the subject of the then-most expensive transfer in history when he joined Real Madrid in a deal worth 94 million euros (80 million pounds). At Madrid, he was at the forefront of the club's resurgence as a dominant European force, helping them win four Champions Leagues between 2014 and 2018, including the long-awaited La Decima. He also won two La Liga titles, including the record-breaking 2011-12 season in which Madrid reached 100 points, and became the club's all-time top goalscorer. He won Ballon d'Ors in 2013, 2014, 2016 and 2017, and was runner-up three times to Lionel Messi, his perceived career rival. Following issues with the club hierarchy, Ronaldo signed for Juventus in 2018 in a transfer worth an initial 100 million euros, where he was pivotal in winning two Serie A titles. In 2021, he returned to United before joining Al-Nassr in 2023.
+Ronaldo made his international debut for Portugal in 2003 at the age of 18 and has earned more than 200 caps, making him history's most-capped male player. He has played in eleven major tournaments. He scored his first international goal in Euro 2004, where he helped Portugal reach the final and subsequently made the team of the tournament. He assumed captaincy of the national team ahead of Euro 2008; and at Euro 2012, he was named in the team of the tournament. Ronaldo led Portugal to their first major tournament title at Euro 2016, being named in the team of the tournament for the third time. In the 2018 World Cup, he had his most prolific World Cup campaign with four goals. He received the Golden Boot as the top scorer of Euro 2020 before playing in his fifth World Cup at the 2022 World Cup. He has won two UEFA Nations Leagues, in 2019 and 2025.
+One of the world's most marketable and famous athletes, Ronaldo was ranked the world's highest-paid athlete by Forbes on five occasions, and the world's most famous athlete by ESPN from 2016 to 2019. Time included him on their list of the 100 most influential people in the world in 2014. He is the most popular sportsperson on social media: he counts over 1 billion total followers across Facebook, Twitter, YouTube and Instagram, making him the first person to achieve that feat. Ronaldo was named in the UEFA Ultimate Team of the Year in 2015, the All-time UEFA Euro XI in 2016, and the Ballon d'Or Dream Team in 2020. In recognition of his record-breaking goalscoring success, he received special awards for Outstanding Career Achievement by FIFA in 2021 and Champions League All-Time Top Scorer by UEFA in 2024.
+
+The United Kingdom of Great Britain and Northern Ireland, commonly known as the United Kingdom (UK) or Britain, is a country in northwestern Europe, off the coast of the continental mainland. It comprises England, Scotland, Wales and Northern Ireland, with a population of over 69 million in 2024. The UK includes the island of Great Britain, the north-eastern part of the island of Ireland, and most of the smaller islands within the British Isles, covering 94,354 square miles (244,376 km2). It shares a land border with the Republic of Ireland and is surrounded by the Atlantic Ocean, the North Sea, the English Channel, the Celtic Sea and the Irish Sea, while maintaining sovereignty over the Crown Dependencies and the British Overseas Territories. The capital and largest city of England and the UK is London; Edinburgh, Cardiff and Belfast are the national capitals of Scotland, Wales and Northern Ireland.
+Britain has been inhabited since the Neolithic. In AD 43 the Roman conquest of Britain began. The Roman departure between 383 and 410 was followed by Anglo-Saxon settlement beginning around 450. In 1066 the Normans conquered England. Over the 17th century the role of the British monarchy was reduced, particularly as a result of the English Civil War. In 1707 the Kingdom of England and the Kingdom of Scotland united under the Treaty of Union to create the Kingdom of Great Britain. In the Georgian era the office of prime minister became established. The Acts of Union 1800 incorporated the Kingdom of Ireland to create the United Kingdom of Great Britain and Ireland in 1801. Most of Ireland seceded from the UK in 1922 as the Irish Free State, and the Royal and Parliamentary Titles Act 1927 created the present United Kingdom.
+The UK became the first industrialised country and was the world's foremost power for the majority of the 19th and early 20th centuries, particularly during the Pax Britannica between 1815 and 1914. The British Empire was the leading economic power for most of the 19th century, a position supported by its agricultural prosperity, its role as a dominant trading nation, a massive industrial capacity, significant technological achievements, and the rise of 19th-century London as the world's principal financial centre. At its height in the 1920s, the empire encompassed around a quarter of the world's landmass and population, and was the largest in history. However, its involvement in the First World War and in the Second World War damaged Britain's economic power, and a global wave of decolonisation led to the independence of most British colonies.
+The UK is a constitutional monarchy and parliamentary democracy with three distinct jurisdictions: England and Wales, Scotland, and Northern Ireland. Scotland, Wales and Northern Ireland have their own governments and parliaments which control various devolved matters. A developed country with an advanced economy, the UK ranks amongst the largest economies by nominal GDP and is one of the world's largest exporters and importers. As a nuclear state with one of the highest defence budgets, the UK maintains one of the strongest militaries in Europe. Its soft power influence can be observed in the legal and political systems of many of its former colonies, and British culture remains globally influential, particularly in language, literature, music and sport. A great power, the UK is part of numerous international organisations and forums.
+
+John Felix Anthony Cena (SEE-na; born April 23, 1977) is an American actor, retired professional wrestler, writer, and former rapper. Widely regarded as one of the greatest professional wrestlers of all-time for WWE, he remains signed with the company as a brand ambassador as of December 2025. He is best known for his in-ring career from 2001 to 2025, where he is recognized by WWE as a record 17-time world champion.
+Cena began professional wrestling in 1999 and signed with the World Wrestling Federation in 2001 (renamed WWE in 2002), where he began in its then-developmental territory Ohio Valley Wrestling (OVW). After debuting on the main roster on SmackDown! in 2002, he rose to prominence as a brash, heel rapper before becoming the company's franchise player from the mid-2000s to the mid-2010s. He wrestled on a part-time schedule from 2017 until his retirement in 2025. His run as a face from 2003 to 2025 was the longest continuous portrayal of a heroic character in WWE history.
+Cena held numerous championships and accomplishments in WWE, including the WWE Championship a record 14 times, the World Heavyweight Championship three times, the WWE United States Championship five times, the WWE Intercontinental Championship once, the World Tag Team Championship twice, and the WWE Tag Team Championship twice. He is the 35th Triple Crown and 25th Grand Slam champion, won the Royal Rumble match twice, the Money in the Bank match once, and headlined multiple major WWE pay-per-view and livestreaming events, including its flagship event, WrestleMania, six times (22, 23, 27, 28, 29, and 41 - Night 2). Cena's full-time career received mixed critical and audience reception, with praise for his character work and promotional skills but criticism for his perceived over-representation and on-screen dominance relative to other wrestlers. In contrast, his later career was more positively received.
+Cena began acting in 2006 and has done both comedy and action films, receiving praise for his roles in Trainwreck (2015), Blockers (2018), and The Suicide Squad (2021). He has also starred in films such as The Marine (2006), Bumblebee (2018), and F9 (2021), as well as portraying the title character in the superhero series Peacemaker (2022-2025). In music, he released the rap album You Can't See Me in 2005, which peaked at No. 15 on the Billboard 200. Cena is also known for his charity work, granting more than 650 wishes for the Make-A-Wish Foundation, the most in the organization's history.
