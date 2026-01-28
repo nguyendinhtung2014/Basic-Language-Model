@@ -85,7 +85,7 @@ def randlayer(indim,outdim):
 
 def save_model():
     with open(file_path,'w') as model:
-        form={"config":{"winlen":context_window,'embdim':embedding_dimension,"layerneu":layerneu,'step':step,"ttid":ttid},
+        form={"config":{"winlen":daSLM.winlen,'embdim':daSLM.embdim,"layerneu":daSLM.layerneu,'step':step,"ttid":daSLM.ttid},
                 'embedding':round_up(daSLM.emb.E),
                 'attention':{
                     'Q':{"weights":round_up(daSLM.att.wq.w),'biases':round_up(daSLM.att.wq.b),'mw':round_up(daSLM.att.wq.mw),"mb":round_up(daSLM.att.wq.mb),'vw':round_up(daSLM.att.wq.vw),'vb':round_up(daSLM.att.wq.vb),"t":daSLM.att.wq.t},
@@ -98,11 +98,13 @@ def load_model():
     with open(load_path,'r') as f:
         form=json.load(f)
     cfg=form["config"]
+    global daSLM
     daSLM.winlen=cfg['winlen']
     daSLM.embdim=cfg["embdim"]
     daSLM.layerneu=cfg["layerneu"]
     step=cfg["step"]
     daSLM.ttid=cfg["ttid"]
+    daSLM.pid=daSLM.ttid["<|PAD|>"]
     daSLM.emb.E=form['embedding']
     att=form["attention"]
     daSLM.att.wq.w=att['Q']["weights"]
@@ -138,6 +140,8 @@ def load_model():
         daSLM.NN.layers[i].vw=nn[i][f'layer {i}']['vw']
         daSLM.NN.layers[i].vb=nn[i][f'layer {i}']['vb']
         daSLM.NN.layers[i].t=nn[i][f'layer {i}']['t']
+    assert cfg['ttid']==daSLM.ttid
+    assert form['embedding']==daSLM.emb.E
     return step
 
 #BPE token gen
@@ -208,9 +212,10 @@ if debug_mode:
     print(tokenize("ing"))
 #embedding: fixed completely
 class embedding:
-    def __init__(self,vocab_size:int,dim:int):
+    def __init__(self,vocab_size:int,dim:int,pid:int):
         self.vocab_size=vocab_size
         self.dim=dim
+        self.pid=pid
         self.E=[[random.uniform(-0.1, 0.1) for i in range(dim)]for j in range(vocab_size)]
         self.E[pid]=[0.0 for i in range(dim)]
         self.last_tokens=None
@@ -234,7 +239,7 @@ class embedding:
         cnt=Counter(self.last_tokens)
         for i in range(len(self.last_tokens)):
             for j in range(self.dim):
-                if self.last_tokens[i]!=pid:
+                if self.last_tokens[i]!=self.pid:
                     self.E[self.last_tokens[i]][j]-=lr*flatdh[i][j]/cnt[self.last_tokens[i]]
 #Layer class: finished
 class layer:
@@ -394,8 +399,9 @@ class SLM:
         self.layerneu=layerneu
         self.batsz=batsz
         self.ttid=ttid
-        self.vocsz=len(ttid) # the extra 3 is the <end of text> token, the <sepeartor between user&assistant> token and the <padding> token
-        self.emb=embedding(self.vocsz,self.embdim)
+        self.pid=ttid["<|PAD|>"]
+        self.vocsz=len(ttid)
+        self.emb=embedding(self.vocsz,self.embdim,self.pid)
         self.NN=NN(self.layerneu)
         self.lr=0.005
         self.att=attention(embdim)
@@ -437,9 +443,8 @@ with open("token prediction data.txt","r",encoding='utf-8') as f1:
 ta=ttext.split("\n\n")
 ta=[tokenize(i)+["<|EOT|>"] for i in ta]
 actual_vocab=list(vocab|{chr(i) for i in range(1,128)}|{" "+chr(i) for i in range(1,128)}|{"<|EOT|>","<|OUT|>","<|PAD|>"})
+actual_vocab=sorted(actual_vocab)
 ttid={actual_vocab[i]:i for i in range(len(actual_vocab))}
-idtt={v:k for k,v in ttid.items()}
-pid=ttid["<|PAD|>"]
 if debug_mode:
     print(len(ttid))
 
@@ -449,21 +454,31 @@ embedding_dimension     =32
 layerneu                =[embedding_dimension]+[128]*5+[len(ttid)]
 
 daSLM=SLM(batch_size,embedding_dimension,layerneu,ttid,context_window)
+
 if load:
     step=load_model()
+daSLM.pid=daSLM.ttid["<|PAD|>"]
+daSLM.emb.pid=daSLM.pid
+idtt={v:k for k,v in daSLM.ttid.items()}
+daSLM.emb.E[daSLM.pid]=[0.0]*daSLM.embdim
+ttid=daSLM.ttid
+print("PAD ID:", daSLM.ttid["<|PAD|>"])
+print("Token at PAD ID:", list(daSLM.ttid.keys())[list(daSLM.ttid.values()).index(daSLM.ttid["<|PAD|>"])])
+
 while True:
     step+=1
     daSLM.lr=0.01/(1+step/10)
     batch=[]
     outb=[]
-    for i in range(batch_size):
+    for i in range(daSLM.batsz):
         rnd=random.choice(ta)
         ptr2=random.randint(1,len(rnd)-1)
-        ptr1=max(0,ptr2-context_window)
+        ptr1=max(0,ptr2-daSLM.winlen)
         batch.append(rnd[ptr1:ptr2])
         outb.append(rnd[ptr2])
     ppl=daSLM.training(batch,outb)
-    bar=int(max(0,min(1,1-(ppl/len(ttid))))*20)
+    bar=int(max(0,min(1,1-(ppl/len(daSLM.ttid))))*20)
     print('█'*bar+'-'*(20-bar),ppl)
     if step%checkpoint_gap==0:
         save_model()
+
