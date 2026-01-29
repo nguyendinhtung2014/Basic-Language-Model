@@ -76,7 +76,7 @@ def mul(a:list[list[float]],b:list[list[float]]):
     return unflatten(list(C), M, N)
 def kindaadd(a,b):return [[ax+bx for ax,bx in zip(row_a,row_b)] for row_a,row_b in zip(a,b)]
 
-def round_up(x,ndigits=6):
+def round_up(x,ndigits=10):
     if isinstance(x,float):
         return round(x,ndigits)
     return [round_up(i,ndigits) for i in x]
@@ -88,10 +88,10 @@ def save_model():
         form={"config":{"winlen":daSLM.winlen,'embdim':daSLM.embdim,"layerneu":daSLM.layerneu,'step':step,"ttid":daSLM.ttid},
                 'embedding':round_up(daSLM.emb.E),
                 'attention':{
-                    'Q':{"weights":round_up(daSLM.att.wq.w),'biases':round_up(daSLM.att.wq.b),'mw':round_up(daSLM.att.wq.mw),"mb":round_up(daSLM.att.wq.mb),'vw':round_up(daSLM.att.wq.vw),'vb':round_up(daSLM.att.wq.vb),"t":daSLM.att.wq.t},
-                    'K':{"weights":round_up(daSLM.att.wk.w),'biases':round_up(daSLM.att.wk.b),'mw':round_up(daSLM.att.wk.mw),"mb":round_up(daSLM.att.wk.mb),'vw':round_up(daSLM.att.wk.vw),'vb':round_up(daSLM.att.wk.vb),"t":daSLM.att.wk.t},
-                    'V':{"weights":round_up(daSLM.att.wv.w),'biases':round_up(daSLM.att.wv.b),'mw':round_up(daSLM.att.wv.mw),"mb":round_up(daSLM.att.wv.mb),'vw':round_up(daSLM.att.wv.vw),'vb':round_up(daSLM.att.wv.vb),"t":daSLM.att.wv.t}},
-                'layerneu':[{f"layer {i}":{"weights":round_up(daSLM.NN.layers[i].w),'biases':round_up(daSLM.NN.layers[i].b),'mw':round_up(daSLM.NN.layers[i].mw),'vw':round_up(daSLM.NN.layers[i].vw),'vb':round_up(daSLM.NN.layers[i].vb),'mb':round_up(daSLM.NN.layers[i].mb),"t":daSLM.NN.layers[i].t}} for i in range(len(layerneu)-1)]
+                    'Q':{"weights":round_up(daSLM.att.wq.w),'biases':round_up(daSLM.att.wq.b),'mw':daSLM.att.wq.mw,"mb":daSLM.att.wq.mb,'vw':daSLM.att.wq.vw,'vb':daSLM.att.wq.vb,"t":daSLM.att.wq.t},
+                    'K':{"weights":round_up(daSLM.att.wk.w),'biases':round_up(daSLM.att.wk.b),'mw':daSLM.att.wk.mw,"mb":daSLM.att.wk.mb,'vw':daSLM.att.wk.vw,'vb':daSLM.att.wk.vb,"t":daSLM.att.wk.t},
+                    'V':{"weights":round_up(daSLM.att.wv.w),'biases':round_up(daSLM.att.wv.b),'mw':daSLM.att.wv.mw,"mb":daSLM.att.wv.mb,'vw':daSLM.att.wv.vw,'vb':daSLM.att.wv.vb,"t":daSLM.att.wv.t}},
+                'layerneu':[{f"layer {i}":{"weights":round_up(daSLM.NN.layers[i].w),'biases':round_up(daSLM.NN.layers[i].b),'mw':daSLM.NN.layers[i].mw,'vw':daSLM.NN.layers[i].vw,'vb':daSLM.NN.layers[i].vb,'mb':daSLM.NN.layers[i].mb,"t":daSLM.NN.layers[i].t}} for i in range(len(layerneu)-1)]
                 }
         json.dump(form,model,separators=(",",':'))
 def load_model():
@@ -481,4 +481,3 @@ while True:
     print('█'*bar+'-'*(20-bar),ppl)
     if step%checkpoint_gap==0:
         save_model()
-
