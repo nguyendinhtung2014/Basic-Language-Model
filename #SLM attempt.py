@@ -3,6 +3,7 @@ step=0
 
 
 debug_mode=False
+load_adam=False
 checkpoint_gap=10
 file_path="model.json"
 load=input("Do you want to load an existing model? (True/False) ").lower()=="true"
@@ -13,11 +14,12 @@ if load:
 import math
 import re
 from collections import Counter
+from collections import deque
 import random
 import json
 import os
 import ctypes
-dll_path=dll_path=os.path.join(os.path.dirname(__file__),"matmul.dll")
+dll_path=os.path.join(os.path.dirname(__file__),"matmul.dll")
 _lib=ctypes.CDLL(dll_path)
 _lib.mul.argtypes=[
     ctypes.POINTER(ctypes.c_float),
@@ -109,39 +111,40 @@ def load_model():
     att=form["attention"]
     daSLM.att.wq.w=att['Q']["weights"]
     daSLM.att.wq.b=att['Q']["biases"]
-    daSLM.att.wq.mw=att['Q']["mw"]
-    daSLM.att.wq.vw=att['Q']["vw"]
-    daSLM.att.wq.mb=att['Q']["mb"]
-    daSLM.att.wq.vb=att['Q']["vb"]
-    daSLM.att.wq.t=att['Q']["t"]
+    if load_adam:
+        daSLM.att.wq.mw=att['Q']["mw"]
+        daSLM.att.wq.vw=att['Q']["vw"]
+        daSLM.att.wq.mb=att['Q']["mb"]
+        daSLM.att.wq.vb=att['Q']["vb"]
+        daSLM.att.wq.t=att['Q']["t"]
 
     daSLM.att.wk.w=att['K']["weights"]
     daSLM.att.wk.b=att['K']["biases"]
-    daSLM.att.wk.mw=att['K']["mw"]
-    daSLM.att.wk.vw=att['K']["vw"]
-    daSLM.att.wk.mb=att['K']["mb"]
-    daSLM.att.wk.vb=att['K']["vb"]
-    daSLM.att.wk.t=att['K']["t"]
+    if load_adam:
+        daSLM.att.wk.mw=att['K']["mw"]
+        daSLM.att.wk.vw=att['K']["vw"]
+        daSLM.att.wk.mb=att['K']["mb"]
+        daSLM.att.wk.vb=att['K']["vb"]
+        daSLM.att.wk.t=att['K']["t"]
 
     daSLM.att.wv.w=att['V']["weights"]
     daSLM.att.wv.b=att['V']["biases"]
-    daSLM.att.wv.mw=att['V']["mw"]
-    daSLM.att.wv.vw=att['V']["vw"]
-    daSLM.att.wv.mb=att['V']["mb"]
-    daSLM.att.wv.vb=att['V']["vb"]
-    daSLM.att.wv.t=att['V']["t"]
+    if load_adam:
+        daSLM.att.wv.mw=att['V']["mw"]
+        daSLM.att.wv.vw=att['V']["vw"]
+        daSLM.att.wv.mb=att['V']["mb"]
+        daSLM.att.wv.vb=att['V']["vb"]
+        daSLM.att.wv.t=att['V']["t"]
     nn=form['layerneu']
     for i in range(len(layerneu)-1):
         daSLM.NN.layers[i].w=nn[i][f'layer {i}']['weights']
         daSLM.NN.layers[i].b=nn[i][f'layer {i}']['biases']
-
-        daSLM.NN.layers[i].mw=nn[i][f'layer {i}']['mw']
-        daSLM.NN.layers[i].mb=nn[i][f'layer {i}']['mb']
-        daSLM.NN.layers[i].vw=nn[i][f'layer {i}']['vw']
-        daSLM.NN.layers[i].vb=nn[i][f'layer {i}']['vb']
-        daSLM.NN.layers[i].t=nn[i][f'layer {i}']['t']
-    assert cfg['ttid']==daSLM.ttid
-    assert form['embedding']==daSLM.emb.E
+        if load_adam:
+            daSLM.NN.layers[i].mw=nn[i][f'layer {i}']['mw']
+            daSLM.NN.layers[i].mb=nn[i][f'layer {i}']['mb']
+            daSLM.NN.layers[i].vw=nn[i][f'layer {i}']['vw']
+            daSLM.NN.layers[i].vb=nn[i][f'layer {i}']['vb']
+            daSLM.NN.layers[i].t=nn[i][f'layer {i}']['t']
     return step
 
 #BPE token gen
@@ -408,7 +411,7 @@ class SLM:
         self.NN.lr=self.lr
         self.winlen=winlen
     def forward(self,tokens:list[list[str]]):
-        tokens=[i+["<|PAD|>"]*(self.winlen-len(i))for i in tokens]
+        tokens=[deque(i)+deque(["<|PAD|>"])*(self.winlen-len(i))for i in tokens]
         tokens=[list(map(lambda x:self.ttid[x],i)) for i in tokens]
         self.last_tokens=tokens
         inp=self.emb.forward(tokens)
@@ -438,6 +441,30 @@ class SLM:
         demb=self.att.backward(datt)
         self.emb.backward(demb*self.batsz,self.lr)
         return math.exp(tloss/self.batsz)
+    def gen(self, start: str, maxtk: int, temp: float = 0.2):
+        tk = deque(tokenize(start))
+        print(start, end='',flush=True)
+    
+        for i in range(maxtk):
+            fw = self.forward([tk])[0][-1]
+            max_val = max(fw)
+            exp_logits = [math.exp((v - max_val) / temp) for v in fw]
+            total = sum(exp_logits)
+            r = random.uniform(0, total)
+            upto = 0
+            idx = 0
+            for i, weight in enumerate(exp_logits):
+                upto += weight
+                if upto >= r:
+                    idx = i
+                    break
+        
+            char = actual_vocab[idx]
+            if char=='<|EOT|>':break
+            print(char, end='', flush=True)
+            tk.append(char)
+            if len(tk)>self.winlen:
+                tk.popleft()
 with open("token prediction data.txt","r",encoding='utf-8') as f1:
     ttext=f1.read()
 ta=ttext.split("\n\n")
@@ -450,8 +477,8 @@ if debug_mode:
 
 batch_size              =4
 context_window          =128
-embedding_dimension     =32
-layerneu                =[embedding_dimension]+[128]*5+[len(ttid)]
+embedding_dimension     =16
+layerneu                =[embedding_dimension]+[64]*3+[len(ttid)]
 
 daSLM=SLM(batch_size,embedding_dimension,layerneu,ttid,context_window)
 
@@ -462,9 +489,8 @@ daSLM.emb.pid=daSLM.pid
 idtt={v:k for k,v in daSLM.ttid.items()}
 daSLM.emb.E[daSLM.pid]=[0.0]*daSLM.embdim
 ttid=daSLM.ttid
-print("PAD ID:", daSLM.ttid["<|PAD|>"])
-print("Token at PAD ID:", list(daSLM.ttid.keys())[list(daSLM.ttid.values()).index(daSLM.ttid["<|PAD|>"])])
-
+if load and input("do you want to try and generate some text? ").lower()=='true':
+    daSLM.gen(input("text: "),1000)
 while True:
     step+=1
     daSLM.lr=0.01/(1+step/10)
@@ -481,3 +507,4 @@ while True:
     print('█'*bar+'-'*(20-bar),ppl)
     if step%checkpoint_gap==0:
         save_model()
+
